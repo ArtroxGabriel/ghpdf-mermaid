@@ -42,9 +42,23 @@ def preprocess_pagebreaks(md_content: str) -> str:
     return PAGE_BREAK_PATTERN.sub(PAGE_BREAK_HTML, md_content)
 
 
+def preprocess_html_blocks(md_content: str) -> str:
+    """Enable markdown parsing inside <details> blocks for md_in_html extension."""
+    def add_md_attr(m: re.Match) -> str:
+        attrs = m.group(1)
+        if "markdown=" in attrs:
+            return m.group(0)
+        return f'<details markdown="1"{attrs}>'
+
+    content = re.sub(r"<details(\s*[^>]*)>", add_md_attr, md_content, flags=re.IGNORECASE)
+    # Ensure empty line after </summary> so markdown processor recognizes inner content
+    return re.sub(r"(</summary>)\s*\n(?!\s*\n)", r"\1\n\n", content, flags=re.IGNORECASE)
+
+
 def markdown_to_html(md_content: str) -> str:
     """Convert markdown to HTML with extensions."""
     md_content = preprocess_pagebreaks(md_content)
+    md_content = preprocess_html_blocks(md_content)
 
     extensions = [
         "markdown.extensions.fenced_code",

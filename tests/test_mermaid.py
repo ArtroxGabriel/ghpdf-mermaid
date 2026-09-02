@@ -120,3 +120,20 @@ def test_convert_pdf_with_mermaid(monkeypatch):
     with patch("subprocess.run", return_value=mock_run):
         pdf_bytes = convert("# Test\n\n```mermaid\ngraph LR\nA-->B\n```")
         assert pdf_bytes.startswith(b"%PDF")
+
+
+def test_markdown_inside_details_block():
+    """Verify bold, code blocks, etc. inside <details> tags render as HTML."""
+    md_content = """<details>
+<summary><strong>Prerequisites</strong></summary>
+
+**macOS** (Homebrew):
+
+```bash
+brew install pango
+```
+</details>"""
+    html_out = markdown_to_html(md_content)
+    assert "<strong>macOS</strong>" in html_out
+    assert "class=\"highlight\"" in html_out or "<code" in html_out
+    assert "**macOS**" not in html_out

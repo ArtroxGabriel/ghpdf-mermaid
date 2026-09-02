@@ -397,12 +397,6 @@ abbr[title] {
     a {
         color: #0969da;
     }
-
-    a[href^="http"]:after {
-        content: " (" attr(href) ")";
-        font-size: 0.8em;
-        color: #656d76;
-    }
 }
 
 /* Mermaid diagrams */

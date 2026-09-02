@@ -59,17 +59,14 @@ uv tool install git+https://github.com/ArtroxGabriel/ghpdf-mermaid.git
 pipx install git+https://github.com/ArtroxGabriel/ghpdf-mermaid.git
 ```
 
-### Optional Mermaid CLI Dependency
+### Mermaid Diagram Requirements
 
-To render Mermaid diagrams, ensure `mermaid-cli` (`mmdc`) is available:
+To render Mermaid diagrams (` ```mermaid ... ``` `) into vector SVG inside your PDFs:
 
-```bash
-# Arch Linux
-sudo pacman -S mermaid-cli # or yay -S mermaid-cli
+- **Arch Linux**: `sudo pacman -S mermaid-cli` (or via AUR: `yay -S mermaid-cli`)
+- **Node.js / npm**: `npm install -g @mermaid-js/mermaid-cli`
+- **Fallback**: If `mmdc` is not installed globally, `ghpdf` will automatically attempt running it through `npx` if Node is installed. If neither is available or if diagram syntax fails, it gracefully falls back to displaying the raw code block.
 
-# npm / npx (fallback also works automatically if npx is installed)
-npm install -g @mermaid-js/mermaid-cli
-```
 
 
 ## Quick Start

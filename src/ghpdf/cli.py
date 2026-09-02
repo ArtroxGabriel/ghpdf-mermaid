@@ -12,7 +12,7 @@ from ghpdf.converter import convert
 
 app = typer.Typer(
     name="ghpdf",
-    help="Convert Markdown files to PDF with GitHub-style rendering.",
+    help="Convert Markdown files to PDF with GitHub-style rendering and Mermaid support.",
     add_completion=False,
     no_args_is_help=False,
 )
@@ -116,7 +116,10 @@ def main(
         ),
     ] = None,
 ) -> None:
-    """Convert Markdown to PDF with GitHub-style rendering.
+    """Convert Markdown to PDF with GitHub-style rendering and Mermaid diagram support.
+    
+    Mermaid diagrams (```mermaid ... ``` blocks) are automatically detected and
+    rendered to SVG vector graphics when `mermaid-cli` (mmdc) or npx is available.
 
     Examples:
 

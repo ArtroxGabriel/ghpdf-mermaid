@@ -404,3 +404,17 @@ abbr[title] {
         color: #656d76;
     }
 }
+
+/* Mermaid diagrams */
+.mermaid {
+    text-align: center;
+    margin: 16px 0;
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
+
+.mermaid svg {
+    max-width: 100%;
+    height: auto;
+}
+

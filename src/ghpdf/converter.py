@@ -7,6 +7,8 @@ from pathlib import Path
 import markdown
 from weasyprint import HTML
 
+from ghpdf.mermaid import MermaidExtension
+
 STATIC_DIR = Path(__file__).parent / "static"
 GITHUB_CSS_PATH = STATIC_DIR / "github.css"
 
@@ -57,6 +59,7 @@ def markdown_to_html(md_content: str) -> str:
         "markdown.extensions.abbr",
         "markdown.extensions.footnotes",
         "markdown.extensions.md_in_html",
+        MermaidExtension(),
     ]
 
     extension_configs = {

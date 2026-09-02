@@ -1,12 +1,12 @@
 [project]
-name = "ghpdf"
+name = "ghpdf-mermaid"
 version = "1.0.0"
-description = "Markdown to PDF converter with GitHub-style rendering"
+description = "Markdown to PDF converter with GitHub-style rendering and Mermaid support (fork of ghpdf)"
 readme = "README.md"
 requires-python = ">=3.11"
-authors = [{ name = "atlekbai" }]
+authors = [{ name = "Gabrigas" }, { name = "atlekbai" }]
 license = { text = "MIT" }
-keywords = ["markdown", "pdf", "converter", "cli"]
+keywords = ["markdown", "pdf", "converter", "cli", "mermaid"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
@@ -23,8 +23,9 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/atlekbai/md2pdf"
-Repository = "https://github.com/atlekbai/md2pdf"
+Homepage = "https://github.com/ArtroxGabriel/ghpdf-mermaid"
+Repository = "https://github.com/ArtroxGabriel/ghpdf-mermaid"
+"Upstream Repository" = "https://github.com/atlekbai/md2pdf"
 
 [project.scripts]
 ghpdf = "ghpdf.cli:app"
@@ -37,6 +38,4 @@ build-backend = "hatchling.build"
 packages = ["src/ghpdf"]
 
 [dependency-groups]
-dev = [
-    "pytest>=8.0.0",
-]
+dev = ["pytest>=8.0.0"]

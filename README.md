@@ -1,13 +1,16 @@
-# ghpdf
+# ghpdf-mermaid
 
-A CLI tool to convert Markdown files to PDF with GitHub-style rendering.
+A CLI tool to convert Markdown files to PDF with GitHub-style rendering and native Mermaid diagram support.
+
+> **Note**: This is a fork of [atlekbai/ghpdf](https://github.com/atlekbai/md2pdf) adding support for [Mermaid](https://mermaid.js.org/) diagram rendering into vector SVG.
 
 ## Why
 
 | Feature             | Description                                                  |
 | ------------------- | ------------------------------------------------------------ |
 | **GitHub styling**  | PDFs look exactly like GitHub renders Markdown               |
-| **Simple**          | No config, no LaTeX, no templates. Just `pip install` and go |
+| **Mermaid support** | Seamlessly renders ````mermaid` blocks into sharp vector PDF diagrams |
+| **Simple**          | No LaTeX, no complex templates                               |
 | **Curl-like flags** | Familiar `-o` and `-O` flags for output control              |
 | **Wildcards**       | Bulk convert with `ghpdf *.md -O`                            |
 
@@ -19,16 +22,19 @@ A CLI tool to convert Markdown files to PDF with GitHub-style rendering.
 <summary><strong>Prerequisites</strong> (system libraries required by WeasyPrint)</summary>
 
 **macOS** (Homebrew):
+
 ```bash
 brew install pango
 ```
 
 **Ubuntu/Debian**:
+
 ```bash
 sudo apt install libpango-1.0-0 libpangocairo-1.0-0
 ```
 
 **Fedora**:
+
 ```bash
 sudo dnf install pango
 ```
@@ -37,17 +43,34 @@ sudo dnf install pango
 
 </details>
 
-### Install ghpdf
+### Arch Linux (AUR)
 
 ```bash
-pip install ghpdf
+yay -S ghpdf-mermaid
+# or
+paru -S ghpdf-mermaid
 ```
 
-Or with [pipx](https://pipx.pypa.io/) (recommended for CLI tools):
+### Install with uv / pipx
 
 ```bash
-pipx install ghpdf
+uv tool install git+https://github.com/ArtroxGabriel/ghpdf-mermaid.git
+# or
+pipx install git+https://github.com/ArtroxGabriel/ghpdf-mermaid.git
 ```
+
+### Optional Mermaid CLI Dependency
+
+To render Mermaid diagrams, ensure `mermaid-cli` (`mmdc`) is available:
+
+```bash
+# Arch Linux
+sudo pacman -S mermaid-cli # or yay -S mermaid-cli
+
+# npm / npx (fallback also works automatically if npx is installed)
+npm install -g @mermaid-js/mermaid-cli
+```
+
 
 ## Quick Start
 
@@ -103,6 +126,7 @@ ghpdf *.md -O -q
 ## Features
 
 - GitHub-flavored markdown styling
+- Mermaid diagram rendering (via `mermaid-cli` / `mmdc`)
 - Syntax highlighting for code blocks
 - Tables, task lists, footnotes, and more
 - Page break support
@@ -112,7 +136,7 @@ ghpdf *.md -O -q
 
 ### Supported Markdown
 
-Headings, bold, italic, strikethrough, lists, task lists, code blocks, inline code, tables, blockquotes, horizontal rules, links, images, footnotes, definition lists, abbreviations, and admonitions.
+Headings, bold, italic, strikethrough, lists, task lists, code blocks, inline code, tables, blockquotes, horizontal rules, links, images, footnotes, definition lists, abbreviations, admonitions, and Mermaid diagrams (````mermaid`).
 
 ### Page Breaks
 
@@ -123,6 +147,10 @@ Insert page breaks using any of these formats:
 <!-- pagebreak -->
 \pagebreak
 ```
+
+## Credits & Acknowledgments
+
+This project is a fork of [`ghpdf`](https://github.com/atlekbai/md2pdf) originally created by [@atlekbai](https://github.com/atlekbai), extended with Mermaid diagram parsing and vector rendering.
 
 ## License
 

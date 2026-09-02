@@ -1,17 +1,19 @@
 """Tests for Mermaid diagram extension and rendering."""
 
+import os
 import shutil
 import subprocess
+import urllib.request
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from ghpdf.converter import convert, markdown_to_html
-from ghpdf.mermaid import MermaidExtension, render_mermaid_to_svg
+from ghpdf.mermaid import MermaidExtension, render_mermaid
 
 
-def test_render_mermaid_to_svg_success(monkeypatch):
-    """Ensure mmdc executes and returns SVG output."""
+def test_render_mermaid_local_success(monkeypatch):
+    """Ensure local mmdc executes and returns SVG output."""
     monkeypatch.setattr(shutil, "which", lambda cmd: "/usr/bin/mmdc" if cmd == "mmdc" else None)
 
     mock_run = MagicMock()
@@ -20,7 +22,7 @@ def test_render_mermaid_to_svg_success(monkeypatch):
     mock_run.stderr = ""
 
     with patch("subprocess.run", return_value=mock_run) as mock_sub:
-        svg = render_mermaid_to_svg("graph TD; A-->B;")
+        svg = render_mermaid("graph TD; A-->B;")
         assert svg == '<div class="mermaid"><svg><g><text>Diagram</text></g></svg></div>'
         assert mock_sub.called
         args, kwargs = mock_sub.call_args
@@ -28,19 +30,44 @@ def test_render_mermaid_to_svg_success(monkeypatch):
         assert kwargs["input"] == "graph TD; A-->B;"
 
 
-def test_render_mermaid_missing_mmdc(monkeypatch):
-    """Fallback to code block when mmdc and npx are not in PATH."""
+def test_render_mermaid_remote_fallback(monkeypatch):
+    """When mmdc is missing, falls back to mermaid.ink SVG."""
     monkeypatch.setattr(shutil, "which", lambda cmd: None)
+    monkeypatch.delenv("GHPDF_MERMAID_OFFLINE", raising=False)
 
-    code = "graph TD;\n  A --> B;"
-    output = render_mermaid_to_svg(code)
-    assert '<pre><code class="language-mermaid">' in output
-    assert "graph TD;\n  A --&gt; B;</code></pre>" in output
+    fake_resp = MagicMock()
+    fake_resp.status = 200
+    fake_resp.read.return_value = b"<svg><g><text>Remote Diagram</text></g></svg>"
+    fake_resp.__enter__.return_value = fake_resp
+
+    with patch("urllib.request.urlopen", return_value=fake_resp):
+        html_out = render_mermaid("graph TD; A-->B;")
+        assert '<div class="mermaid"><svg><g><text>Remote Diagram</text></g></svg></div>' in html_out
+
+
+def test_render_mermaid_offline_fallback(monkeypatch):
+    """When mmdc is missing and offline mode is set, falls back to raw code block."""
+    monkeypatch.setattr(shutil, "which", lambda cmd: None)
+    monkeypatch.setenv("GHPDF_MERMAID_OFFLINE", "1")
+
+    html_out = render_mermaid("graph TD;\n  A --> B;")
+    assert '<pre><code class="language-mermaid">' in html_out
+    assert "graph TD;\n  A --&gt; B;</code></pre>" in html_out
+
+
+def test_render_mermaid_allow_remote_false(monkeypatch):
+    """When allow_remote=False, skips network call and falls back to code block."""
+    monkeypatch.setattr(shutil, "which", lambda cmd: None)
+    monkeypatch.delenv("GHPDF_MERMAID_OFFLINE", raising=False)
+
+    html_out = render_mermaid("graph TD;\n  A --> B;", allow_remote=False)
+    assert '<pre><code class="language-mermaid">' in html_out
 
 
 def test_render_mermaid_error_fallback(monkeypatch):
-    """Fallback to code block when mmdc returns a non-zero exit status."""
+    """Fallback to code block when local and remote both fail."""
     monkeypatch.setattr(shutil, "which", lambda cmd: "/usr/bin/mmdc" if cmd == "mmdc" else None)
+    monkeypatch.setenv("GHPDF_MERMAID_OFFLINE", "1")
 
     mock_run = MagicMock()
     mock_run.returncode = 1
@@ -49,7 +76,7 @@ def test_render_mermaid_error_fallback(monkeypatch):
 
     with patch("subprocess.run", return_value=mock_run):
         code = "invalid mermaid syntax"
-        output = render_mermaid_to_svg(code)
+        output = render_mermaid(code)
         assert '<pre><code class="language-mermaid">' in output
         assert "invalid mermaid syntax" in output
 

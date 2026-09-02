@@ -42,11 +42,12 @@ def convert_file(
     output_path: Path,
     page_numbers: bool,
     quiet: bool,
+    mermaid_offline: bool = False,
 ) -> bool:
     """Convert a single file. Returns True on success."""
     try:
         md_content = input_path.read_text(encoding="utf-8")
-        pdf_bytes = convert(md_content, page_numbers)
+        pdf_bytes = convert(md_content, page_numbers, mermaid_offline=mermaid_offline)
         output_path.write_bytes(pdf_bytes)
 
         if not quiet:
@@ -103,6 +104,13 @@ def main(
             "-q",
             "--quiet",
             help="Suppress progress output.",
+        ),
+    ] = False,
+    mermaid_offline: Annotated[
+        bool,
+        typer.Option(
+            "--mermaid-offline",
+            help="Disable remote network fallback (mermaid.ink) for Mermaid diagrams.",
         ),
     ] = False,
     version: Annotated[
@@ -168,7 +176,7 @@ def main(
             raise typer.Exit(code=1)
 
         try:
-            pdf_bytes = convert(md_content, page_numbers)
+            pdf_bytes = convert(md_content, page_numbers, mermaid_offline=mermaid_offline)
         except Exception as e:
             console.print(f"[red]Error:[/red] Conversion failed: {e}")
             raise typer.Exit(code=1)
@@ -191,13 +199,13 @@ def main(
 
     # Single file with explicit output
     if len(input_files) == 1 and output:
-        success = convert_file(input_files[0], output, page_numbers, quiet)
+        success = convert_file(input_files[0], output, page_numbers, quiet, mermaid_offline=mermaid_offline)
         raise typer.Exit(code=0 if success else 1)
 
     # Single file with auto-name
     if len(input_files) == 1 and remote_name:
         output_path = derive_output_path(input_files[0])
-        success = convert_file(input_files[0], output_path, page_numbers, quiet)
+        success = convert_file(input_files[0], output_path, page_numbers, quiet, mermaid_offline=mermaid_offline)
         raise typer.Exit(code=0 if success else 1)
 
     # Single file, no output specified
@@ -218,7 +226,7 @@ def main(
 
     for input_file in input_files:
         output_path = derive_output_path(input_file)
-        if convert_file(input_file, output_path, page_numbers, quiet):
+        if convert_file(input_file, output_path, page_numbers, quiet, mermaid_offline=mermaid_offline):
             success_count += 1
         else:
             fail_count += 1

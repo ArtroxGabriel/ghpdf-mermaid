@@ -55,7 +55,7 @@ def preprocess_html_blocks(md_content: str) -> str:
     return re.sub(r"(</summary>)\s*\n(?!\s*\n)", r"\1\n\n", content, flags=re.IGNORECASE)
 
 
-def markdown_to_html(md_content: str) -> str:
+def markdown_to_html(md_content: str, mermaid_offline: bool = False) -> str:
     """Convert markdown to HTML with extensions."""
     md_content = preprocess_pagebreaks(md_content)
     md_content = preprocess_html_blocks(md_content)
@@ -73,7 +73,7 @@ def markdown_to_html(md_content: str) -> str:
         "markdown.extensions.abbr",
         "markdown.extensions.footnotes",
         "markdown.extensions.md_in_html",
-        MermaidExtension(),
+        MermaidExtension(allow_remote=not mermaid_offline),
     ]
 
     extension_configs = {
@@ -118,17 +118,22 @@ def html_to_pdf(html_content: str) -> bytes:
     return pdf_buffer.getvalue()
 
 
-def convert(content: str, page_numbers: bool = False) -> bytes:
+def convert(
+    content: str,
+    page_numbers: bool = False,
+    mermaid_offline: bool = False,
+) -> bytes:
     """Convert markdown content to PDF bytes.
 
     Args:
         content: Markdown text to convert
         page_numbers: Add page numbers at bottom center
+        mermaid_offline: Disable network fallback (mermaid.ink) for Mermaid diagrams
 
     Returns:
         PDF file as bytes
     """
     css = get_github_css()
-    html_body = markdown_to_html(content)
+    html_body = markdown_to_html(content, mermaid_offline=mermaid_offline)
     html_document = create_html_document(html_body, css, page_numbers=page_numbers)
     return html_to_pdf(html_document)

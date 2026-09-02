@@ -59,15 +59,25 @@ uv tool install git+https://github.com/ArtroxGabriel/ghpdf-mermaid.git
 pipx install git+https://github.com/ArtroxGabriel/ghpdf-mermaid.git
 ```
 
-### Mermaid Diagram Requirements
+### Mermaid Diagrams
 
-To render Mermaid diagrams (` ```mermaid ... ``` `) into vector SVG inside your PDFs:
+Fenced code blocks tagged with `mermaid` (````mermaid ... ````) are automatically rendered and embedded into the PDF.
 
-- **Arch Linux**: `sudo pacman -S mermaid-cli` (or via AUR: `yay -S mermaid-cli`)
-- **Node.js / npm**: `npm install -g @mermaid-js/mermaid-cli`
-- **Fallback**: If `mmdc` is not installed globally, `ghpdf` will automatically attempt running it through `npx` if Node is installed. If neither is available or if diagram syntax fails, it gracefully falls back to displaying the raw code block.
+**Renderers (in order of preference):**
 
+1. **Local — [`mermaid-cli`](https://github.com/mermaid-js/mermaid-cli) (`mmdc`)**:
+   Used automatically if `mmdc` is found on `$PATH`. Renders sharp vector SVG diagrams completely offline:
+   - **Arch Linux**: `sudo pacman -S mermaid-cli` (or via AUR: `yay -S mermaid-cli`)
+   - **npm**: `npm install -g @mermaid-js/mermaid-cli`
+2. **Remote — [mermaid.ink](https://mermaid.ink)**:
+   Automatic online fallback when `mmdc` is not installed on the system.
+3. **Raw Code Block**:
+   If both local and remote rendering fail, the block is preserved as a standard syntax-highlighted code block.
 
+#### Offline Mode
+You can disable the network fallback to ensure conversions remain strictly offline:
+- Use the CLI flag: `--mermaid-offline`
+- Or set the environment variable: `export GHPDF_MERMAID_OFFLINE=1`
 
 ## Quick Start
 
@@ -87,13 +97,14 @@ ghpdf [OPTIONS] [FILES]...
 
 ### Options
 
-| Flag | Long             | Description                                 |
-| ---- | ---------------- | ------------------------------------------- |
-| `-o` | `--output`       | Output filename (single file or stdin only) |
-| `-O` | `--remote-name`  | Auto-name output (input.md → input.pdf)     |
-| `-n` | `--page-numbers` | Add page numbers at bottom center           |
-| `-q` | `--quiet`        | Suppress progress output                    |
-| `-V` | `--version`      | Show version and exit                       |
+| Flag | Long                | Description                                                |
+| ---- | ------------------- | ---------------------------------------------------------- |
+| `-o` | `--output`          | Output filename (single file or stdin only)                |
+| `-O` | `--remote-name`     | Auto-name output (input.md → input.pdf)                    |
+| `-n` | `--page-numbers`    | Add page numbers at bottom center                          |
+| `-q` | `--quiet`           | Suppress progress output                                   |
+|      | `--mermaid-offline` | Disable network fallback (mermaid.ink) for Mermaid diagrams|
+| `-V` | `--version`         | Show version and exit                                      |
 
 ### Examples
 

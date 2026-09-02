@@ -19,6 +19,21 @@ PAGE_BREAK_PATTERN = re.compile(
 )
 PAGE_BREAK_HTML = '<div class="pagebreak"></div>'
 
+# GitHub-styled vector SVG checkboxes for task lists
+CHECKBOX_UNCHECKED = (
+    '<span class="task-list-item-checkbox">'
+    '<svg viewBox="0 0 16 16">'
+    '<rect x="1" y="1" width="14" height="14" rx="3" fill="#ffffff" stroke="#d1d9e0" stroke-width="1.5"/>'
+    '</svg></span>'
+)
+CHECKBOX_CHECKED = (
+    '<span class="task-list-item-checkbox">'
+    '<svg viewBox="0 0 16 16">'
+    '<rect width="16" height="16" rx="3" fill="#1f883d" stroke="#1f883d" stroke-width="1.5"/>'
+    '<path d="M3.5 8.5L6.5 11.5L12.5 4.5" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
+    '</svg></span>'
+)
+
 # CSS for page numbers
 PAGE_NUMBERS_CSS = """
 @page {
@@ -55,10 +70,18 @@ def preprocess_html_blocks(md_content: str) -> str:
     return re.sub(r"(</summary>)\s*\n(?!\s*\n)", r"\1\n\n", content, flags=re.IGNORECASE)
 
 
+def preprocess_task_lists(md_content: str) -> str:
+    """Convert GFM task list markers [ ] and [x] into styled vector SVG checkboxes."""
+    md_content = re.sub(r"^(\s*[-*+]\s+)\[ \]\s+", r"\1" + CHECKBOX_UNCHECKED + " ", md_content, flags=re.MULTILINE)
+    md_content = re.sub(r"^(\s*[-*+]\s+)\[[xX]\]\s+", r"\1" + CHECKBOX_CHECKED + " ", md_content, flags=re.MULTILINE)
+    return md_content
+
+
 def markdown_to_html(md_content: str, mermaid_offline: bool = False) -> str:
     """Convert markdown to HTML with extensions."""
     md_content = preprocess_pagebreaks(md_content)
     md_content = preprocess_html_blocks(md_content)
+    md_content = preprocess_task_lists(md_content)
 
     extensions = [
         "markdown.extensions.fenced_code",

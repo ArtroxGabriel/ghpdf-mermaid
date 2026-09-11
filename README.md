@@ -67,15 +67,20 @@ Fenced code blocks tagged with `mermaid` (````mermaid ... ````) are automaticall
 
 1. **Local — [`mermaid-cli`](https://github.com/mermaid-js/mermaid-cli) (`mmdc`)**:
    Used automatically if `mmdc` is found on `$PATH`. Renders sharp vector SVG diagrams completely offline:
-   - **Arch Linux**: `sudo pacman -S mermaid-cli` (or via AUR: `yay -S mermaid-cli`)
-   - **npm**: `npm install -g @mermaid-js/mermaid-cli`
+
+    - **Arch Linux**: `sudo pacman -S mermaid-cli` (or via AUR: `yay -S mermaid-cli`)
+    - **npm**: `npm install -g @mermaid-js/mermaid-cli`
+
 2. **Remote — [mermaid.ink](https://mermaid.ink)**:
    Automatic online fallback when `mmdc` is not installed on the system.
+
 3. **Raw Code Block**:
    If both local and remote rendering fail, the block is preserved as a standard syntax-highlighted code block.
 
 #### Offline Mode
+
 You can disable the network fallback to ensure conversions remain strictly offline:
+
 - Use the CLI flag: `--mermaid-offline`
 - Or set the environment variable: `export GHPDF_MERMAID_OFFLINE=1`
 

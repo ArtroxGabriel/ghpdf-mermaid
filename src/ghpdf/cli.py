@@ -197,41 +197,25 @@ def main(
             console.print(f"[red]Error:[/red] File not found: {f}")
         raise typer.Exit(code=1)
 
-    # Single file with explicit output
-    if len(input_files) == 1 and output:
-        success = convert_file(input_files[0], output, page_numbers, quiet, mermaid_offline=mermaid_offline)
-        raise typer.Exit(code=0 if success else 1)
-
-    # Single file with auto-name
-    if len(input_files) == 1 and remote_name:
-        output_path = derive_output_path(input_files[0])
-        success = convert_file(input_files[0], output_path, page_numbers, quiet, mermaid_offline=mermaid_offline)
-        raise typer.Exit(code=0 if success else 1)
-
-    # Single file, no output specified
-    if len(input_files) == 1 and not output and not remote_name:
-        console.print("[red]Error:[/red] No output specified. Use -o <file> or -O.")
-        raise typer.Exit(code=1)
-
-    # Multiple files - require -O
-    if not remote_name:
-        console.print(
-            "[red]Error:[/red] Multiple files require -O flag for auto-naming."
+    # Validate output options
+    if not output and not remote_name:
+        error_msg = (
+            "No output specified. Use -o <file> or -O."
+            if len(input_files) == 1
+            else "Multiple files require -O flag for auto-naming."
         )
+        console.print(f"[red]Error:[/red] {error_msg}")
         raise typer.Exit(code=1)
 
-    # Bulk conversion
-    success_count = 0
-    fail_count = 0
+    # Process conversions
+    jobs = [(input_files[0], output)] if output else [(f, derive_output_path(f)) for f in input_files]
+    success_count = sum(
+        convert_file(src, dst, page_numbers, quiet, mermaid_offline=mermaid_offline)
+        for src, dst in jobs
+    )
+    fail_count = len(jobs) - success_count
 
-    for input_file in input_files:
-        output_path = derive_output_path(input_file)
-        if convert_file(input_file, output_path, page_numbers, quiet, mermaid_offline=mermaid_offline):
-            success_count += 1
-        else:
-            fail_count += 1
-
-    if not quiet:
+    if not quiet and len(jobs) > 1:
         if fail_count == 0:
             console.print(f"[green]Converted {success_count} file(s) successfully.[/green]")
         else:

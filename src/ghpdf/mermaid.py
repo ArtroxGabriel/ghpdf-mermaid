@@ -20,6 +20,12 @@ MERMAID_USER_AGENT = "ghpdf/1.0 (+https://github.com/ArtroxGabriel/ghpdf-mermaid
 MERMAID_OFFLINE_ENV = "GHPDF_MERMAID_OFFLINE"
 
 
+def _wrap_mermaid_svg(raw: str) -> str | None:
+    """Extract SVG tag and wrap in container div."""
+    idx = raw.find("<svg")
+    return f'<div class="mermaid">{raw[idx:].strip()}</div>' if idx != -1 else None
+
+
 def _render_mermaid_local(code: str) -> str | None:
     """Render Mermaid code to SVG using local mmdc. None on failure or missing binary."""
     mmdc = shutil.which("mmdc")
@@ -35,33 +41,26 @@ def _render_mermaid_local(code: str) -> str | None:
     }
     puppeteer_cfg = {"args": ["--no-sandbox", "--disable-setuid-sandbox"]}
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as m_file, \
-         tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as p_file:
-        json.dump(mermaid_cfg, m_file)
-        json.dump(puppeteer_cfg, p_file)
-        m_path = m_file.name
-        p_path = p_file.name
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_path = Path(tmp_dir)
+        m_path = tmp_path / "mermaid.json"
+        p_path = tmp_path / "puppeteer.json"
+        m_path.write_text(json.dumps(mermaid_cfg))
+        p_path.write_text(json.dumps(puppeteer_cfg))
 
-    try:
-        proc = subprocess.run(
-            [mmdc, "-i", "-", "-o", "-", "-c", m_path, "-p", p_path],
-            input=code,
-            text=True,
-            capture_output=True,
-            check=False,
-            timeout=30,
-        )
-        if proc.returncode == 0 and "<svg" in proc.stdout:
-            svg_content = proc.stdout[proc.stdout.find("<svg"):]
-            return f'<div class="mermaid">{svg_content.strip()}</div>'
-    except (subprocess.SubprocessError, OSError):
-        pass
-    finally:
-        for path in (m_path, p_path):
-            try:
-                Path(path).unlink(missing_ok=True)
-            except OSError:
-                pass
+        try:
+            proc = subprocess.run(
+                [mmdc, "-i", "-", "-o", "-", "-c", str(m_path), "-p", str(p_path)],
+                input=code,
+                text=True,
+                capture_output=True,
+                check=False,
+                timeout=30,
+            )
+            if proc.returncode == 0:
+                return _wrap_mermaid_svg(proc.stdout)
+        except (subprocess.SubprocessError, OSError):
+            pass
 
     return None
 
@@ -81,10 +80,7 @@ def _render_mermaid_remote(code: str) -> str | None:
     try:
         with urllib.request.urlopen(request, timeout=MERMAID_TIMEOUT) as resp:
             if resp.status == 200:
-                svg_content = resp.read().decode("utf-8")
-                if "<svg" in svg_content:
-                    svg_content = svg_content[svg_content.find("<svg"):]
-                    return f'<div class="mermaid">{svg_content.strip()}</div>'
+                return _wrap_mermaid_svg(resp.read().decode("utf-8"))
     except (urllib.error.URLError, TimeoutError, OSError):
         pass
 
@@ -126,6 +122,10 @@ class MermaidPreprocessor(Preprocessor):
         in_mermaid = False
         block_lines: list[str] = []
 
+        def flush_block() -> None:
+            rendered = render_mermaid("\n".join(block_lines), allow_remote=self.allow_remote)
+            new_lines.extend(rendered.splitlines())
+
         for line in lines:
             stripped = line.strip()
             if not in_mermaid:
@@ -134,18 +134,14 @@ class MermaidPreprocessor(Preprocessor):
                     block_lines = []
                 else:
                     new_lines.append(line)
+            elif stripped == "```":
+                in_mermaid = False
+                flush_block()
             else:
-                if stripped == "```":
-                    in_mermaid = False
-                    rendered = render_mermaid("\n".join(block_lines), allow_remote=self.allow_remote)
-                    new_lines.extend(rendered.splitlines())
-                else:
-                    block_lines.append(line)
+                block_lines.append(line)
 
-        # Handle unclosed block gracefully
         if in_mermaid:
-            rendered = render_mermaid("\n".join(block_lines), allow_remote=self.allow_remote)
-            new_lines.extend(rendered.splitlines())
+            flush_block()
 
         return new_lines
 

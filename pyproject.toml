@@ -1,6 +1,6 @@
 [project]
 name = "ghpdf-mermaid"
-version = "1.0.0"
+version = "1.0.1"
 description = "Markdown to PDF converter with GitHub-style rendering and Mermaid support (fork of ghpdf)"
 readme = "README.md"
 requires-python = ">=3.11"

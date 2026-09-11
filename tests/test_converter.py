@@ -7,6 +7,8 @@ from ghpdf.converter import (
     html_to_pdf,
     markdown_to_html,
     preprocess_html_blocks,
+    preprocess_indented_code_blocks,
+    preprocess_lists,
     preprocess_pagebreaks,
     preprocess_task_lists,
 )
@@ -91,3 +93,59 @@ def test_html_to_pdf_and_convert():
     pdf_bytes = convert("# Sample Document\n\nParagraph text.", page_numbers=True)
     assert isinstance(pdf_bytes, bytes)
     assert pdf_bytes.startswith(b"%PDF")
+
+
+def test_preprocess_lists_directly_following_paragraph():
+    """Ensure bullet lists starting with - or * directly after paragraphs become lists."""
+    md_content = """Paragraph:
+- item 1
+- item 2
+* item 3"""
+    html_out = markdown_to_html(md_content)
+    assert "<ul>" in html_out
+    assert "<li>item 1</li>" in html_out
+    assert "<li>item 2</li>" in html_out
+    assert "<li>item 3</li>" in html_out
+    assert "- item 1" not in html_out
+
+
+def test_preprocess_indented_code_blocks_in_lists():
+    """Verify indented code block fences are transformed into native indented code blocks."""
+    # Arrange
+    md_content = """* list item
+
+    ```go
+        var k = 10
+    ```"""
+
+    # Act
+    preprocessed = preprocess_indented_code_blocks(md_content)
+
+    # Assert
+    assert ":::go" in preprocessed
+    assert "```" not in preprocessed
+
+
+def test_indented_fenced_code_block_renders_highlighted_inside_list():
+    """Ensure indented fenced code blocks in lists render as syntax-highlighted blocks."""
+    # Arrange
+    md_content = """sem identacao a conversao para pdf funciona sem
+
+```go
+var k = 10
+```
+
+* ja no cenario identado, onde funcionaria bem num visualizador de markdown, a conversao para pdf nao funciona, fica quebrada
+
+    ```go
+        var k = 10
+    ```"""
+
+    # Act
+    html_out = markdown_to_html(md_content)
+
+    # Assert
+    # Both the unindented and indented blocks should have highlighted pre/code blocks
+    assert html_out.count('class="highlight"') == 2
+    assert "<li>" in html_out
+    assert "<code>go" not in html_out

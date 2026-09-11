@@ -1,5 +1,4 @@
-"""Core conversion functions for ghpdf."""
-
+import functools
 import io
 import re
 from pathlib import Path
@@ -18,6 +17,10 @@ PAGE_BREAK_PATTERN = re.compile(
     re.MULTILINE | re.IGNORECASE,
 )
 PAGE_BREAK_HTML = '<div class="pagebreak"></div>'
+
+BULLET_PATTERN = re.compile(r"^\s*[-*+]\s+\S")
+LIST_ITEM_PATTERN = re.compile(r"^\s*([-*+]|\d+\.)\s+")
+INDENTED_FENCE_PATTERN = re.compile(r"^(\s+)([`~]{3,})([a-zA-Z0-9_+#.-]*)\s*$")
 
 # GitHub-styled vector SVG checkboxes for task lists
 CHECKBOX_UNCHECKED = (
@@ -47,6 +50,7 @@ PAGE_NUMBERS_CSS = """
 """
 
 
+@functools.cache
 def get_github_css() -> str:
     """Load GitHub-style CSS."""
     return GITHUB_CSS_PATH.read_text()
@@ -77,11 +81,69 @@ def preprocess_task_lists(md_content: str) -> str:
     return md_content
 
 
+def preprocess_lists(md_content: str) -> str:
+    """Ensure bullet lists directly following paragraphs are recognized as lists."""
+    lines = md_content.splitlines()
+    result = []
+    in_code = False
+    for i, line in enumerate(lines):
+        if line.strip().startswith(("```", "~~~")):
+            in_code = not in_code
+        if not in_code and i > 0:
+            prev = lines[i - 1].rstrip()
+            is_bullet = bool(BULLET_PATTERN.match(line))
+            prev_is_bullet = bool(LIST_ITEM_PATTERN.match(lines[i - 1]))
+            if is_bullet and prev and not prev_is_bullet and not prev.endswith("\\") and not prev.startswith("#"):
+                result.append("")
+        result.append(line)
+    return "\n".join(result)
+
+
+def preprocess_indented_code_blocks(md_content: str) -> str:
+    """Convert indented fenced code blocks in lists into native indented code blocks.
+
+    Example:
+        >>> preprocess_indented_code_blocks("* item\\n    ```go\\n    var k = 10\\n    ```")
+        '* item\\n\\n        :::go\\n        var k = 10\\n'
+    """
+    lines = md_content.splitlines()
+    result: list[str] = []
+    i = 0
+    while i < len(lines):
+        match = INDENTED_FENCE_PATTERN.match(lines[i])
+        if match and match.group(3) != "mermaid":
+            indent_str, fence_chars, lang = match.group(1), match.group(2), match.group(3).strip()
+            depth = max(1, (len(indent_str) + 3) // 4)
+            code_indent = " " * ((depth + 1) * 4)
+
+            if result and result[-1].strip():
+                result.append("")
+            if lang:
+                result.append(f"{code_indent}:::{lang}")
+
+            i += 1
+            while i < len(lines) and lines[i].strip() != fence_chars:
+                content = lines[i][len(indent_str):] if lines[i].startswith(indent_str) else lines[i].lstrip()
+                result.append(f"{code_indent}{content}" if content else "")
+                i += 1
+
+            if i < len(lines):
+                i += 1
+            result.append("")
+            continue
+
+        result.append(lines[i])
+        i += 1
+    return "\n".join(result)
+
+
 def markdown_to_html(md_content: str, mermaid_offline: bool = False) -> str:
     """Convert markdown to HTML with extensions."""
     md_content = preprocess_pagebreaks(md_content)
     md_content = preprocess_html_blocks(md_content)
     md_content = preprocess_task_lists(md_content)
+    md_content = preprocess_lists(md_content)
+    md_content = preprocess_indented_code_blocks(md_content)
 
     extensions = [
         "markdown.extensions.fenced_code",
